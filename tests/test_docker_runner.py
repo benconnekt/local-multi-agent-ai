@@ -2,9 +2,14 @@
 from app.tools.sandbox.docker_runner import DockerSandboxRunner
 from app.tools.workspace import AgentWorkspace
 
+from app.tools.sandbox.policies import get_execution_policy
+from conftest import docker_available;
 
-def test_python_execution_passes():
-    runner = DockerSandboxRunner()
+
+def test_python_execution_passes(docker_available):
+    runner = DockerSandboxRunner(
+        policy=get_execution_policy("python")
+    )
 
     with AgentWorkspace() as workspace:
         workspace.write_file(
@@ -21,8 +26,10 @@ def test_python_execution_passes():
         assert result.stdout.strip() == "5"
 
 
-def test_python_execution_failure():
-    runner = DockerSandboxRunner()
+def test_python_execution_failure(docker_available):
+    runner = DockerSandboxRunner(
+        policy=get_execution_policy("python")
+    )
 
     with AgentWorkspace() as workspace:
         workspace.write_file(
@@ -39,8 +46,8 @@ def test_python_execution_failure():
         assert "ValueError" in result.stderr
 
 
-def test_python_execution_timeout():
-    runner = DockerSandboxRunner(timeout_seconds=2)
+def test_python_execution_timeout(docker_available):
+    runner = DockerSandboxRunner(policy=get_execution_policy("python") )
 
     with AgentWorkspace() as workspace:
         workspace.write_file(
@@ -60,8 +67,8 @@ def test_python_execution_timeout():
 import subprocess
 
 
-def test_timeout_removes_container():
-    runner = DockerSandboxRunner(timeout_seconds=2)
+def test_timeout_removes_container(docker_available): 
+    runner = DockerSandboxRunner(policy=get_execution_policy("python") )
 
     with AgentWorkspace() as workspace:
         workspace.write_file(

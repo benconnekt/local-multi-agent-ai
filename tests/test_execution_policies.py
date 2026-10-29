@@ -6,6 +6,7 @@ from app.tools.sandbox.policies import (
     get_execution_policy,
 )
 
+from app.tools.sandbox.policies import validate_pinned_image
 
 def test_python_policy():
     policy = get_execution_policy("python")
@@ -69,3 +70,29 @@ def test_unknown_language_rejected():
 def test_python_rejects_javascript():
     with pytest.raises(ValueError):
         build_execution_command("python", "script.js")
+
+
+@pytest.mark.parametrize(
+    "image",
+    [
+        "python:3.12-slim",
+        "node:24-slim",
+        "python:latest",
+        "node:24-slim@@sha256:" + "a" * 64,
+        "python@sha256:invalid",
+        "",
+    ],
+)
+def test_mutable_or_invalid_images_rejected(image):
+    with pytest.raises(ValueError):
+        validate_pinned_image(image)
+
+
+def test_python_image_is_pinned():
+    policy = get_execution_policy("python")
+    validate_pinned_image(policy.image)
+
+
+def test_node_image_is_pinned():
+    policy = get_execution_policy("typescript")
+    validate_pinned_image(policy.image)

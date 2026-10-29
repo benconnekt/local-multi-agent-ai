@@ -1,0 +1,40 @@
+[project]
+name = "multi-agent-ai"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Ben Igbokwe", email = "ben.igbokwe@hotmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.161.0",
+    "gitpython>=3.2.1",
+    "langchain>=1.4.7",
+    "langchain-ollama>=1.1.0",
+    "langgraph>=1.2.16",
+    "pandas>=3.1.0",
+    "pydantic>=2.14.1",
+    "pydantic-settings>=2.16.1",
+    "uvicorn[standard]>=0.54.0",
+    "yfinance>=1.7.0",
+]
+
+[project.scripts]
+multi-agent-ai = "multi_agent_ai:main"
+
+[build-system]
+requires = ["uv_build>=0.13.5,<0.14.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.17.2",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra"

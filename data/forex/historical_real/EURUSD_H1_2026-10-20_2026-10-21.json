@@ -1,0 +1,16 @@
+{
+  "provider": "yahoo_finance",
+  "symbol": "EURUSD",
+  "provider_symbol": "EURUSD=X",
+  "timeframe": "H1",
+  "start_utc": "2026-10-20T00:00:00+00:00",
+  "end_utc_exclusive": "2026-10-21T00:00:00+00:00",
+  "retrieved_at_utc": "2026-10-29T23:42:39.680449+00:00",
+  "data_kind": "historical_real",
+  "price_basis": "Yahoo indicative FX OHLC; not executable bid/ask",
+  "count": 24,
+  "first_timestamp": "2026-10-20T00:00:00+00:00",
+  "last_timestamp": "2026-10-20T23:00:00+00:00",
+  "csv_sha256": "c8241b92704bc94ca5758dd0de5a8fe54326e01b31b28a436527ae570c215dfc",
+  "quality_status": "validated_ohlc_not_completeness_certified"
+}

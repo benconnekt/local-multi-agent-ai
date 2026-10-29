@@ -6,6 +6,8 @@ from app.tools.sandbox.execution_service import (
 )
 from app.tools.workspace import AgentWorkspace
 
+from conftest import docker_available;
+
 
 def test_python_execution():
     service = SandboxExecutionService()
@@ -26,7 +28,7 @@ def test_python_execution():
         assert "Hello from James" in result.stdout
 
 
-def test_typescript_compiled_javascript_execution():
+def test_typescript_compiled_javascript_execution(docker_available):
     service = SandboxExecutionService()
 
     with AgentWorkspace() as workspace:

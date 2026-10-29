@@ -10,6 +10,14 @@ from app.tools.sandbox.policies import (
     get_execution_policy,
 )
 
+from app.tools.sandbox.workspace_security import (
+    validate_execution_file,
+)
+
+from app.tools.sandbox.evidence import (
+    ExecutionEvidence,
+    build_execution_evidence,
+)
 
 class SandboxExecutionService:
     def execute(
@@ -21,12 +29,34 @@ class SandboxExecutionService:
         policy = get_execution_policy(language)
         command = build_execution_command(language, filename)
 
-        runner = DockerSandboxRunner(
-            image=policy.image,
-            timeout_seconds=policy.timeout_seconds,
-        )
+        runner = DockerSandboxRunner(policy=policy)
+
+        validate_execution_file(workspace, filename)
 
         return runner.run(
             workspace=workspace,
             command=command,
         )
+
+    
+    def execute_with_evidence(
+        self,
+        language: str,
+        workspace: Path,
+        filename: str,
+    ) -> ExecutionEvidence:
+        policy = get_execution_policy(language)
+        command = build_execution_command(language, filename)
+
+        result = self.execute(
+            language=language,
+            workspace=workspace,
+            filename=filename,
+        )
+
+        return build_execution_evidence(
+            policy=policy,
+            command=command,
+            result=result,
+        )
+
