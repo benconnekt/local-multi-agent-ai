@@ -1,15 +1,11 @@
-# TR-03A.8 compatibility fix
+# TR-05C.2 — Historical reconciliation diagnostics
 
-Repairs three regressions seen in the existing test suite:
-- Legacy Yahoo catalogue tests use an isolated temporary directory, not a folder named `historical_real`. Yahoo datasets are now accepted from any directory except `historical_oanda`, while metadata and SHA-256 checks remain intact.
-- The API accepts older minimal catalogue entries that omit `first_timestamp`, using `None` rather than raising `KeyError`.
+This patch does **not** pretend that GBPUSD's 2025-12-21 22:15 UTC M15 candle exists. The research gate remains closed until that gap is resolved. It preserves the previous TR-05C provisional closure calendar and does not certify broker holidays.
 
-Only two files are changed. OANDA provenance validation and research-only NO_TRADE policy remain unchanged.
+Install from repository root: `unzip -o ~/Downloads/TR05C2-reconciliation.zip -d .`.
 
-From repository root after committing changes:
+Run `uv run python scripts/tr05c2_reconcile.py` to see calendar-adjusted audit results for all three pairs. Expect EURUSD and USDJPY H1/M15 to pass, GBPUSD H1 to pass, GBPUSD M15 to show one missing interval. Results depend on your imported files.
 
-```sh
-unzip -o ~/Downloads/TR-03A8-compatibility-fix.zip -d .
-uv run pytest tests/trading/test_dataset_catalogue.py tests/trading/test_strategy_route.py tests/trading/test_tr03a8_integration.py -v
-uv run pytest -q
-```
+For a **read-only** broker probe, ensure `OANDA_API_TOKEN` is in the environment (do not share it), `OANDA_ENVIRONMENT=practice`, then run `uv run python scripts/tr05c2_oanda_probe.py`. It requests only GBP_USD M15 candles 2025-12-21 22:00–23:00 UTC and prints what the broker returns. No automatic import is performed: reconcile any returned candle through the existing validated importer, and re-run the audit. If no candle is returned, do not invent one or silently waive the gap.
+
+The historical backtest now provides detailed audit failures rather than a generic error. This patch is based on the previously delivered TR-05C holiday-calendar version of the runner; it does not include or alter the TR-05D hypothesis-generator performance fix.

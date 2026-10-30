@@ -25,6 +25,10 @@ class SessionAudit:
     checked_expected_intervals: int
     provisional_schedule_pass: bool
     independently_certified: bool = False
+    excluded_calendar_intervals: int = 0
+    calendar_id: str | None = None
+    calendar_verified: bool = False
+    acknowledged_absence_intervals: int = 0
     schedule: str = 'provisional_new_york_sun_17_to_fri_17_dst_aware'
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -57,7 +61,8 @@ def _valid_bar(bar: dict[str, Any]) -> bool:
     except (KeyError, ValueError, TypeError):
         return False
 
-def audit_sessions(rows: Iterable[Any], timeframe: str, *, max_examples: int = 8) -> SessionAudit:
+def audit_sessions(rows: Iterable[Any], timeframe: str, *, max_examples: int = 8,
+                   calendar: Any = None, acknowledged_absences: frozenset[datetime] = frozenset()) -> SessionAudit:
     if timeframe not in STEPS:
         raise ValueError('Only H1 and M15 source timeframes are supported')
     if max_examples < 0:
@@ -72,17 +77,23 @@ def audit_sessions(rows: Iterable[Any], timeframe: str, *, max_examples: int = 8
     unique = sorted(set(timestamps))
     duplicates = len(timestamps) - len(unique)
     alignment = sum(bool(t.minute % (step.seconds // 60) or t.second or t.microsecond) for t in unique)
-    unexpected = sum(not _market_open(t) for t in unique)
+    unexpected = sum(not _market_open(t) or (calendar is not None and calendar.is_closed(t)) for t in unique)
     missing = 0
+    acknowledged_count = 0
     examples: list[str] = []
     checked = 0
+    excluded = 0
     if unique:
         observed = set(unique)
         t = unique[0]
         while t <= unique[-1]:
-            if _market_open(t):
+            if _market_open(t) and calendar is not None and calendar.is_closed(t):
+                excluded += 1
+            elif _market_open(t):
                 checked += 1
-                if t not in observed:
+                if t not in observed and t in acknowledged_absences:
+                    acknowledged_count += 1
+                elif t not in observed:
                     missing += 1
                     if len(examples) < max_examples:
                         examples.append(t.isoformat())
@@ -90,7 +101,11 @@ def audit_sessions(rows: Iterable[Any], timeframe: str, *, max_examples: int = 8
     passed = bool(unique) and not any((duplicates, alignment, unexpected, missing, invalid_ohlc))
     return SessionAudit(timeframe, len(timestamps), unique[0].isoformat() if unique else None,
                         unique[-1].isoformat() if unique else None, missing, tuple(examples),
-                        unexpected, duplicates, alignment, invalid_ohlc, checked, passed)
+                        unexpected, duplicates, alignment, invalid_ohlc, checked, passed,
+                        excluded_calendar_intervals=excluded,
+                        calendar_id=calendar.calendar_id if calendar is not None else None,
+                        calendar_verified=calendar.verified if calendar is not None else False,
+                        acknowledged_absence_intervals=acknowledged_count)
 
 def derive_h4_summary(h1_rows: Iterable[Any], *, minimum_h4: int = 200) -> dict[str, Any]:
     if minimum_h4 < 1:

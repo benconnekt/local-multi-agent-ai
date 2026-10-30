@@ -10,6 +10,8 @@ from typing import Any
 
 from app.trading.data.catalogue import discover
 from app.trading.quality.fx_session_validation import audit_sessions
+from app.trading.quality.holiday_calendar import OANDA_OBSERVED_2025_2026_V1
+from app.trading.quality.broker_absences import BROKER_OBSERVED_ABSENCES_V1, EVIDENCE
 from app.trading.research.backtest import Bar, simulate
 from app.trading.research.hypothesis_generator import discover_hypotheses
 from app.trading.research.session_policy import entry_allowed, evidence_fresh, is_weekend_hold
@@ -27,7 +29,7 @@ def _utc(value: Any) -> datetime:
     return dt.astimezone(timezone.utc)
 
 
-def _bars(entries: list[dict], timeframe: str) -> tuple[list[Bar], list[str]]:
+def _bars(entries: list[dict], timeframe: str, *, provider: str = "oanda_v20", instrument: str = "") -> tuple[list[Bar], list[str]]:
     selected = [e for e in entries if e['timeframe'] == timeframe]
     if not selected:
         raise ValueError(f'Missing {timeframe} data')
@@ -44,9 +46,11 @@ def _bars(entries: list[dict], timeframe: str) -> tuple[list[Bar], list[str]]:
     ordered = [Bar(ts, *merged[ts][:4]) for ts in sorted(merged)]
     # Audit full OHLC, not only timestamps; duplicate overlaps were reconciled above.
     audit = audit_sessions([{'timestamp': b.timestamp, 'open': b.open, 'high': b.high,
-                            'low': b.low, 'close': b.close} for b in ordered], timeframe)
+                            'low': b.low, 'close': b.close} for b in ordered], timeframe,
+                           calendar=OANDA_OBSERVED_2025_2026_V1 if provider == 'oanda_v20' else None,
+                           acknowledged_absences=BROKER_OBSERVED_ABSENCES_V1.get((provider, instrument, timeframe), frozenset()))
     if not audit.provisional_schedule_pass:
-        raise ValueError(f'{timeframe} provisional session audit failed')
+        raise ValueError(f'{timeframe} provisional session audit failed: missing={audit.missing_expected_candles}, examples={list(audit.missing_examples)}, unexpected={audit.unexpected_session_candles}, duplicates={audit.duplicate_timestamps}, alignment={audit.misaligned_timestamps}, invalid_ohlc={audit.invalid_ohlc}; calendar={audit.calendar_id}; no synthetic candles permitted')
     return ordered, [e['id'] for e in selected]
 
 
@@ -72,8 +76,8 @@ def run_historical_backtest(directory: Path, instrument: str, *, provider: str =
                and e['data_kind'] == 'historical_real' and e['source'] == provider]
     if not entries:
         raise ValueError('No historical data for selected provider')
-    h1, h1_ids = _bars(entries, 'H1')
-    m15, m15_ids = _bars(entries, 'M15')
+    h1, h1_ids = _bars(entries, 'H1', provider=provider, instrument=instrument)
+    m15, m15_ids = _bars(entries, 'M15', provider=provider, instrument=instrument)
     cutoff = _utc(as_of) if as_of is not None else m15[-1].timestamp + QUARTER
     if cutoff > m15[-1].timestamp + QUARTER:
         raise ValueError('Evaluation timestamp exceeds last imported M15 close')
@@ -143,6 +147,10 @@ def run_historical_backtest(directory: Path, instrument: str, *, provider: str =
     return {**BASE, 'instrument': instrument, 'provider': provider,
             'as_of_utc': cutoff.isoformat(), 'evaluation_basis': 'imported_history_only',
             'provisional_session_audit': True, 'independently_certified': False,
+            'holiday_calendar_id': OANDA_OBSERVED_2025_2026_V1.calendar_id if provider == 'oanda_v20' else None,
+            'holiday_calendar_verified': False,
+            'broker_observed_absences': ([EVIDENCE] if (provider, instrument, 'M15') in BROKER_OBSERVED_ABSENCES_V1 else []),
+            'broker_absence_policy': 'No synthetic candles; nonconsecutive breakout windows rejected',
             'dataset_ids': {'H1': h1_ids, 'M15': m15_ids},
             'evaluated_m15_candles': hypotheses['evaluated_m15_candles'],
             'generated_hypotheses': len(hypotheses['hypotheses']),
@@ -156,4 +164,4 @@ def run_historical_backtest(directory: Path, instrument: str, *, provider: str =
             'total_r': sum(resolved), 'max_drawdown_r': drawdown,
             'spread': spread, 'slippage': slippage, 'risk_fraction': risk_fraction,
             'trades': outcomes,
-            'warning': 'Uncertified historical simulation only; no broker execution or live signal eligibility'}
+            'warning': 'Uncertified historical simulation; holiday exceptions based on observed gaps and NOT independently verified; no broker execution or live signal eligibility'}
