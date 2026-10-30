@@ -1,0 +1,18 @@
+{
+  "provider": "oanda_v20",
+  "data_kind": "historical_real",
+  "environment": "practice",
+  "api_host": "https://api-fxpractice.oanda.com",
+  "instrument": "GBPUSD",
+  "symbol": "GBPUSD",
+  "timeframe": "M15",
+  "price_component": "mid",
+  "smoothed": false,
+  "strategy_eligible": false,
+  "quality_status": "imported_uncertified",
+  "count": 960,
+  "first_timestamp": "2026-05-27T00:00:00+00:00",
+  "last_timestamp": "2026-06-09T23:45:00+00:00",
+  "csv_sha256": "4977fb73c26b7aa0b7f4f76995b3cb3cde00063f6abc74d35520c2c66bc20e8d",
+  "retrieved_at_utc": "2026-10-30T14:14:15.372987+00:00"
+}

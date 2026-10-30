@@ -8,6 +8,9 @@ from app.trading.services.strategy_data_loader import DatasetNotReady, assemble
 from app.trading.services.opportunity_evidence import unavailable_score
 from app.trading.services.timeframe_readiness import inspect_timeframes
 from app.trading.quality.readiness_report import build_session_readiness
+from app.trading.quality.timeframe_freshness import evaluate_freshness
+from app.trading.quality.readiness_report import _reconcile
+from datetime import datetime, timedelta, timezone
 
 router = APIRouter(prefix='/trading', tags=['trading-research'])
 DATA_DIRECTORY = Path(__file__).resolve().parents[3] / 'data' / 'forex' / 'historical_real'
@@ -35,6 +38,46 @@ def analyse(
     }
     readiness = inspect_timeframes(entries, provider=provider)
     session_readiness = build_session_readiness(entries, provider=provider)
+    # Diagnostic-only: use a single reconciled provider and a closed M15 evaluation point.
+    # Never derive a freshness verdict from mixed or conflicting sources.
+    freshness_readiness = {
+        'status': 'unavailable', 'blocking_reasons': ['provider_selection_required'],
+        'certified': False, 'research_signal_eligible': False,
+        'research_only': True, 'quality_certified': False, 'decision': 'NO_TRADE',
+    }
+    if not ambiguous and len({d['source'] for d in selected}) == 1:
+        h1_rows, h1_conflicts = _reconcile(selected, 'H1')
+        m15_rows, m15_conflicts = _reconcile(selected, 'M15')
+        if h1_conflicts or m15_conflicts:
+            freshness_readiness = {
+                **freshness_readiness, 'status': 'conflicting_overlaps',
+                'blocking_reasons': ['conflicting_historical_overlaps'],
+            }
+        elif h1_rows and m15_rows:
+            try:
+                def _bar_start(bar):
+                    row = bar.model_dump() if hasattr(bar, 'model_dump') else bar
+                    value = row['timestamp']
+                    dt = value if isinstance(value, datetime) else datetime.fromisoformat(value.replace('Z', '+00:00'))
+                    if dt.tzinfo is None:
+                        raise ValueError('Naive candle timestamp')
+                    return dt.astimezone(timezone.utc)
+
+                evaluation = max(_bar_start(row) for row in m15_rows) + timedelta(minutes=15)
+                freshness_readiness = evaluate_freshness(h1_rows, m15_rows, as_of=evaluation)
+                freshness_readiness['status'] = 'provisional_diagnostics_only'
+                freshness_readiness['evaluation_basis'] = 'latest_imported_M15_close_not_wall_clock'
+            except (ValueError, TypeError, KeyError, OverflowError) as exc:
+                freshness_readiness = {
+                    **freshness_readiness, 'status': 'invalid_source',
+                    'blocking_reasons': ['invalid_historical_candles'],
+                }
+        else:
+            freshness_readiness = {
+                **freshness_readiness, 'status': 'missing_timeframe',
+                'blocking_reasons': ['missing_H1_or_M15'],
+            }
+
     try:
         assemble(DATA_DIRECTORY, instrument, provider=provider)
     except DatasetNotReady as exc:
@@ -55,4 +98,5 @@ def analyse(
         'opportunity_score': unavailable_score(reason),
         'timeframe_readiness': readiness,
         'session_readiness': session_readiness,
+        'freshness_readiness': freshness_readiness,
     }

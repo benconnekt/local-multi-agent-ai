@@ -1,0 +1,18 @@
+{
+  "provider": "oanda_v20",
+  "data_kind": "historical_real",
+  "environment": "practice",
+  "api_host": "https://api-fxpractice.oanda.com",
+  "instrument": "USDJPY",
+  "symbol": "USDJPY",
+  "timeframe": "M15",
+  "price_component": "mid",
+  "smoothed": false,
+  "strategy_eligible": false,
+  "quality_status": "imported_uncertified",
+  "count": 960,
+  "first_timestamp": "2025-10-01T00:00:00+00:00",
+  "last_timestamp": "2025-10-14T23:45:00+00:00",
+  "csv_sha256": "437d95d0e86b8c33e3444c62efb45756d78b8714ec6c81a1325bfc88e632c043",
+  "retrieved_at_utc": "2026-10-30T14:14:20.911676+00:00"
+}

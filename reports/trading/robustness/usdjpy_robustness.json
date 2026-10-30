@@ -1,0 +1,97 @@
+{
+  "decision": "NO_TRADE",
+  "research_only": true,
+  "quality_certified": false,
+  "research_signal_eligible": false,
+  "independently_certified": false,
+  "hypothetical": true,
+  "instrument": null,
+  "validation_type": "retrospective_chronological_diagnostic_not_out_of_sample",
+  "strategy_frozen_before_holdout": false,
+  "historical_data_independently_certified": false,
+  "split": {
+    "training": {
+      "trades": 14,
+      "resolved": 14,
+      "wins": 4,
+      "losses": 10,
+      "unresolved": 0,
+      "total_r": -2.4406271944834694,
+      "expectancy_r": -0.1743305138916764,
+      "win_rate": 0.2857142857142857,
+      "max_drawdown_r": 4.40757714726914
+    },
+    "holdout": {
+      "trades": 7,
+      "resolved": 6,
+      "wins": 1,
+      "losses": 5,
+      "unresolved": 1,
+      "total_r": -3.228709199147395,
+      "expectancy_r": -0.5381181998578991,
+      "win_rate": 0.16666666666666666,
+      "max_drawdown_r": 4.160329543429986
+    },
+    "boundary_signal_utc": "2026-10-23T12:15:00+00:00"
+  },
+  "by_direction": {
+    "LONG": {
+      "trades": 6,
+      "resolved": 6,
+      "wins": 1,
+      "losses": 5,
+      "unresolved": 0,
+      "total_r": -3.210592452617039,
+      "expectancy_r": -0.5350987421028398,
+      "win_rate": 0.16666666666666666,
+      "max_drawdown_r": 3.210592452617039
+    },
+    "SHORT": {
+      "trades": 15,
+      "resolved": 14,
+      "wins": 4,
+      "losses": 10,
+      "unresolved": 1,
+      "total_r": -2.4587439410138248,
+      "expectancy_r": -0.1756245672152732,
+      "win_rate": 0.2857142857142857,
+      "max_drawdown_r": 5.357314238082087
+    }
+  },
+  "by_weekend_hold": {
+    "held": {
+      "trades": 3,
+      "resolved": 3,
+      "wins": 1,
+      "losses": 2,
+      "unresolved": 0,
+      "total_r": -0.0805984138268232,
+      "expectancy_r": -0.0268661379422744,
+      "win_rate": 0.3333333333333333,
+      "max_drawdown_r": 2.0478613624998667
+    },
+    "not_held": {
+      "trades": 18,
+      "resolved": 17,
+      "wins": 4,
+      "losses": 13,
+      "unresolved": 1,
+      "total_r": -5.588737979804041,
+      "expectancy_r": -0.32874929292964944,
+      "win_rate": 0.23529411764705882,
+      "max_drawdown_r": 8.487308276872303
+    }
+  },
+  "sample_sufficient": false,
+  "validation_pass": false,
+  "blockers": [
+    "Existing ledger is not genuinely unseen data",
+    "Independent market-data/session certification pending",
+    "Holdout has fewer than 30 resolved trades"
+  ],
+  "limitations": [
+    "Fixed-cohort cost sensitivity requires original OHLC and re-simulation",
+    "No financing, bid/ask path, or variable liquidity modelling",
+    "A diagnostic split cannot prove strategy generalisation"
+  ]
+}

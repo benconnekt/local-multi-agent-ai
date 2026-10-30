@@ -4,6 +4,8 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+from app.trading.quality.h4_integrity import analyse_h4, closed_timeframe_alignment
+
 STEPS = {'H1': timedelta(hours=1), 'M15': timedelta(minutes=15)}
 
 
@@ -82,14 +84,17 @@ def inspect_timeframes(entries: list[dict], *, h4_min_candles: int = 250,
                  'missing_source' if not h1_times else
                  'insufficient_history' if len(complete) < h4_min_candles else
                  'pending_session_certification')
+    h4_integrity = analyse_h4([{'timestamp': ts} for ts in h1_times], minimum_h4=h4_min_candles)
     h4 = {'source': 'derived_from_H1', 'status': h4_status,
           'candle_count': len(complete), 'incomplete_groups': incomplete,
           'required_candles': h4_min_candles, 'certified': False,
           'reason': 'H4 is derived from H1; session/coverage certification remains pending'}
+    h4['integrity'] = h4_integrity
     if h1_times and m15_times:
         overlap = max(min(h1_times), min(m15_times)) < min(max(h1_times) + STEPS['H1'], max(m15_times) + STEPS['M15'])
     else:
         overlap = False
+    # Dataset ranges alone cannot prove synchronised closed-candle freshness.
     return {'provider': provider, 'H1': h1, 'M15': m15, 'H4': h4,
             'alignment': {'overlapping_coverage': overlap, 'certified': False,
                           'reason': 'Overlapping coverage alone does not certify synchronized closed candles'}}
