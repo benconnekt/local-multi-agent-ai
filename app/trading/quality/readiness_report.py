@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 from app.trading.quality.fx_session_validation import audit_sessions, derive_h4_summary
+from app.trading.quality.h4_integrity import analyse_h4
 
 
 def _utc(value: Any) -> datetime:
@@ -59,7 +60,16 @@ def build_session_readiness(entries: list[dict[str, Any]], *, provider: str | No
             result[tf] = audit_sessions(rows, tf).to_dict()
         if tf == 'H1':
             h1 = rows
-    result['H4'] = derive_h4_summary(h1)
+    if result['H1'].get('status') == 'conflicting_overlaps':
+        result['H4'] = {
+            'source': 'derived_from_H1', 'status': 'invalid_source',
+            'reason': 'Conflicting H1 overlaps; H4 derivation prohibited',
+            'complete_candles': 0, 'incomplete_groups': 0,
+            'independently_certified': False,
+        }
+    else:
+        result['H4'] = derive_h4_summary(h1)
+        result['H4']['integrity'] = analyse_h4(h1)
     result['certification_status'] = 'pending_independent_provider_calendar_and_data_verification'
     result['research_signal_eligible'] = False
     return result

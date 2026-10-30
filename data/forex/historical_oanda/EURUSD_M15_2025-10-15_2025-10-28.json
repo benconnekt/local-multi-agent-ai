@@ -1,0 +1,18 @@
+{
+  "provider": "oanda_v20",
+  "data_kind": "historical_real",
+  "environment": "practice",
+  "api_host": "https://api-fxpractice.oanda.com",
+  "instrument": "EURUSD",
+  "symbol": "EURUSD",
+  "timeframe": "M15",
+  "price_component": "mid",
+  "smoothed": false,
+  "strategy_eligible": false,
+  "quality_status": "imported_uncertified",
+  "count": 960,
+  "first_timestamp": "2025-10-15T00:00:00+00:00",
+  "last_timestamp": "2025-10-28T23:45:00+00:00",
+  "csv_sha256": "a767a8cb2ae387001716881acc4c050507f24dff4164e44fd48db49ad2d20817",
+  "retrieved_at_utc": "2026-10-30T14:13:49.572745+00:00"
+}
