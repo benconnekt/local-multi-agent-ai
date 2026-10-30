@@ -1,0 +1,33 @@
+"""Read-only research analysis; uncertified historical datasets fail closed."""
+from __future__ import annotations
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from fastapi import APIRouter, HTTPException, Query
+from app.trading.data.catalogue import discover
+from app.trading.strategies.multi_timeframe import evaluate
+
+router = APIRouter(prefix="/trading", tags=["trading-research"])
+DATA_DIRECTORY = Path(__file__).resolve().parents[3] / "data" / "forex" / "historical_real"
+DURATIONS = {"M15": 15, "H1": 60, "H4": 240}
+
+@router.get("/strategy/analyse")
+def analyse(instrument: str = Query(pattern=r"^(EURUSD|GBPUSD|USDJPY)$")):
+    entries = [d for d in discover(DATA_DIRECTORY) if d["instrument"] == instrument and d["data_kind"] == "historical_real"]
+    by_tf = {tf: sorted((d for d in entries if d["timeframe"] == tf), key=lambda d: d["last_timestamp"], reverse=True) for tf in DURATIONS}
+    selected = {tf: matches[0] for tf, matches in by_tf.items() if matches}
+    missing = [tf for tf in DURATIONS if tf not in selected]
+    provenance = {tf: {"id": d["id"], "source": d["source"], "quality_status": d["quality_status"], "count": d["count"], "last_timestamp": d["last_timestamp"]} for tf, d in selected.items()}
+    # Existing 'coverage_pass_weekend_model_only' is not independently certified.
+    certified = all(d["quality_status"] == "certified_research_ready" for d in selected.values()) and not missing
+    if missing:
+        reason = "Missing historical timeframes: " + ", ".join(missing)
+    elif not certified:
+        reason = "Historical datasets are not independently certified for strategy research"
+    else:
+        # Explicitly fail closed until a cross-dataset aligned, gap-aware loader is implemented.
+        reason = "Cross-timeframe timestamp alignment and continuity are not yet certified"
+    return {"instrument": instrument, "decision": "NO_TRADE", "reason": reason,
+            "research_only": True, "quality_certified": False, "datasets": provenance,
+            "missing_timeframes": missing, "entry": None, "stop_loss": None,
+            "take_profit": None, "risk_fraction": 0.0, "reward_to_risk": None,
+            "indicators": None, "as_of_utc": None}

@@ -7,6 +7,7 @@ from app.api.routes.health import router as health_router
 from app.api.routes.tasks import router as tasks_router
 from app.api.routes.trading import router as trading_router
 from app.api.routes.trading_datasets import router as trading_datasets_router
+from app.api.routes.trading_strategy import router as trading_strategy_router
 
 app = FastAPI(
     title="Local Agent Studio API",
@@ -31,3 +32,4 @@ app.include_router(agents_router, prefix="/api/v1")
 app.include_router(tasks_router, prefix="/api/v1")
 app.include_router(trading_router   , prefix="/api/v1")
 app.include_router(trading_datasets_router, prefix="/api/v1")
+app.include_router(trading_strategy_router, prefix="/api/v1")

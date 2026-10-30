@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import CandlestickChart from "../../components/trading/CandlestickChart";
+import CandlestickChart from "@/components/trading/CandlestickChart";
 import { tradingApi, type CandlesResponse, type Instrument, type InstrumentsResponse, type Timeframe } from "@/lib/trading-api";
+import StrategyResearchPanel from '@/components/trading/StrategyResearchPanel';
 
 export default function TradingPage() {
   const [catalogue, setCatalogue] = useState<InstrumentsResponse | null>(null);
@@ -84,7 +85,8 @@ export default function TradingPage() {
             dataset?.candles.length ? <CandlestickChart key={`${instrument}-${timeframe}`} candles={dataset.candles} symbol={instrument} /> :
             <p role="status" className="py-24 text-center text-slate-400">No candles available.</p>}
         </section>
-
+        {/* Multi-timeframe strategy analysis */}
+        <StrategyResearchPanel instrument={instrument} />
         <div className="grid gap-4 md:grid-cols-2">
           <section className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
             <h2 className="font-semibold">Research agents</h2>
