@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 from app.trading.data.catalogue import discover
+from app.trading.quality.fx_session_validation import audit_sessions
 
 UTC = timezone.utc
 STEP = {'M15': timedelta(minutes=15), 'H1': timedelta(hours=1)}
@@ -62,11 +63,32 @@ def _merge(entries: list[dict], timeframe: str, cutoff: datetime) -> tuple[list[
     return ordered, used
 
 def _check_contiguous(rows: list[dict], timeframe: str) -> None:
-    """Intentionally strict pending independently certified market-session exceptions."""
-    step = STEP[timeframe]
-    for previous, current in zip(rows, rows[1:]):
-        if _utc(current['timestamp']) - _utc(previous['timestamp']) != step:
-            raise DatasetNotReady(f'{timeframe} historical gap or nonstandard session; not certified')
+    """Require complete provisional in-session coverage; never certify data."""
+    try:
+        audit = audit_sessions(rows, timeframe)
+    except (ValueError, TypeError, KeyError, OverflowError) as exc:
+        raise DatasetNotReady(
+            f'{timeframe} invalid session data: {exc}'
+        ) from exc
+
+    if not audit.provisional_schedule_pass:
+        issues = []
+        for field in (
+            'missing_expected_candles',
+            'unexpected_session_candles',
+            'duplicate_timestamps',
+            'misaligned_timestamps',
+            'invalid_ohlc',
+        ):
+            count = getattr(audit, field)
+            if count:
+                issues.append(f'{field}={count}')
+
+        raise DatasetNotReady(
+            f'{timeframe} historical gap or session validation failed: '
+            + (', '.join(issues) if issues else 'no eligible candles')
+            + '; not certified'
+        )
 
 def _h4_from_h1(rows: list[dict]) -> list[dict]:
     groups: dict[datetime, list[dict]] = {}
